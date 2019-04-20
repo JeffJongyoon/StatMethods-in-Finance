@@ -9,55 +9,73 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r}
 #library(Ecdat)
 library(quadprog)
 library(plyr)
 library(tidyverse)
 
-stdt <- read.csv("wrds_data_new.csv",header = T)
+stdt <- read.csv("stock(new).csv",header = T)
+stdt$gsector <- as.factor(stdt$gsector)
 Ticker<-stdt %>%
-  group_by(Ticker.Symbol) %>%
+  group_by(tic) %>%
   summarise(sum=n()) %>%
-  filter(sum==1258) %>%
-  select(Ticker.Symbol)
-stdt %>%
-  group_by(GIC.Sectors,Ticker.Symbol) %>%
+  filter(sum==816) %>%
+  select(tic)
+a<-stdt %>%
+  group_by(gsector,tic) %>%
   summarise(sum=n()) %>%
-  filter(sum==1258) %>%
-  group_by(GIC.Sectors) %>%
-  summarise(count=n())# %>%
-  #select(count) #%>%
+  filter(sum==816) %>%
+  group_by(gsector) %>%
+  summarise(count=n()) %>%
+  select(count) #%>%
   #summarise(sum(.))
 
 stocks <- stdt %>%
-  filter(Ticker.Symbol %in% as.character(unlist(Ticker)))
+  filter(tic %in% as.character(unlist(Ticker)))
 
-stocks$Ticker.Symbol <- factor(stocks$Ticker.Symbol)
-stocks$Company.Name <- factor(stocks$Company.Name)
-stocks$GIC.Sectors <- factor(stocks$GIC.Sectors)
+Tic_del <- stocks %>%
+  filter(is.na(cshoc)) %>%
+  group_by(tic) %>%
+  summarise(n()) %>%
+  select(tic)
+
+`%notin%` <- Negate(`%in%`)
+b<-stocks %>%
+  filter(tic %notin% as.character(unlist(Tic_del))) %>%
+  group_by(gsector,tic) %>%
+  summarise(n()) %>%
+  group_by(gsector) %>%
+  summarise(n=n()) %>%
+  select(n)
+
+a-b
 stocks <- stocks %>%
-  group_by(GIC.Sectors,Data.Date...Dividends) %>%
-  summarise(Mkt.Cap=sum(Market.cap..USDmil.))
-stocks
+  filter(tic %notin% as.character(unlist(Tic_del)))
+stocks <- stocks %>%
+  mutate(Mktval = cshoc*prccd)
+
+gsec_mtkcap <- stocks %>%
+  group_by(gsector,datadate) %>%
+  summarise(Mkt.Cap=sum(Mktval))
 
 #For each sector => parallel programming
 parallel.sec <- function(sector.df) {
+  a <- sector.df %>%
+    mutate(Mkt.Cap.Lag1 = lag(Mkt.Cap)) %>%
+    mutate(Daily.return = (Mkt.Cap-Mkt.Cap.Lag1)/Mkt.Cap.Lag1*100) %>% #in percents
+    select(-Mkt.Cap.Lag1)
   
-  return(coef(lm(strike.volume ~ left.parliament, + data=country.df)))
+  return(summary(a))
 }
-
-stocks %>%
-  mutate(Mkt.Cap.Lag1 = lag(Mkt.Cap)) %>%
-  mutate(Daily.return = (Mkt.Cap-Mkt.Cap.Lag1)/Mkt.Cap.Lag1*100) %>% #in percents
-  select(-Mkt.Cap.Lag1)
+#dlply(gsec_mtkcap, .(gsector), parallel.sec)
+str(gsec_mtkcap)
 
 #split(stocks,stocks$GIC.Sectors)
 
-stocks<-spread(stocks,GIC.Sectors,Mkt.Cap)
-names(stocks) <- c("Date","Sec_10","Sec_15","Sec_20","Sec_25","Sec_30","Sec_35","Sec_40","Sec_45","Sec_50","Sec_55","Sec_60")
-#write.csv(stocks,"stocks.csv")
+gsec_mtkcap_date<-spread(gsec_mtkcap,gsector,Mkt.Cap)
+names(gsec_mtkcap_date) <- c("Date","Sec_10","Sec_15","Sec_20","Sec_25","Sec_30","Sec_35","Sec_40","Sec_45","Sec_50","Sec_55","Sec_60")
+write.csv(gsec_mtkcap_date,"gsec_mtkcap_date.csv")
 
 ```
 
