@@ -1,0 +1,271 @@
+---
+title: "Project_GR5261"
+author: "Dongoh Shin"
+date: "4/15/2019"
+output: 
+ pdf_document:
+    fig_caption: yes
+    fig_crop: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## New data (Using Vanguard ETFs)
+
+```{r}
+s <- read.csv("total.csv", header = T)
+growth <- function(df){
+  a <- c(NA, tail(df, -1) / head(df, -1) - 1)
+  return(a)
+}
+sam <- sapply(s[, -1], growth)
+s <- data.frame(Date = s[, 1], sam)
+s <- s[-1, ]
+#write.csv(s, "total_return.csv")
+
+Date <- as.character(s$Date)
+s$Year <- substr(Date, nchar(Date)-1, nchar(Date))
+
+s07 <- s[s$Year == "07", ] # Bull market 1
+s1617 <- s[s$Year == "16" | s$Year == "17", ] # Bull market 2
+s17 <- s[s$Year == "17", ] # Bull market 3
+s08 <- s[s$Year == "08", ] # Bear market 1
+s0809 <- s[s$Year == "08" | s$Year == "09", ] # Bear market 2
+s18 <- s[s$Year == "18", ] # Prediction target
+
+# Getting rid of the date and the year columns
+s07 <- s07[, -1]; s07 <- s07[, -dim(s07)[2]]
+s1617 <- s1617[, -1]; s1617 <- s1617[, -dim(s1617)[2]]
+s17 <- s17[, -1]; s17 <- s17[, -dim(s17)[2]]
+s08 <- s08[, -1]; s08 <- s08[, -dim(s08)[2]]
+s0809 <- s0809[, -1]; s0809 <- s0809[, -dim(s0809)[2]]
+s18 <- s18[, -1]; s18 <- s18[, -dim(s18)[2]]
+```
+
+# Mean and variance
+
+```{r}
+# mean and cov
+mean_vect07 <- apply(s07, 2, mean)
+cov_mat07 <- cov(s07)
+sd_vect07 <- sqrt(diag(cov_mat07))
+
+mean_vect0809 <- apply(s0809, 2, mean)
+cov_mat0809 <- cov(s0809)
+sd_vect0809 <- sqrt(diag(cov_mat0809))
+
+mean_vect1617 <- apply(s1617, 2, mean)
+cov_mat1617 <- cov(s1617)
+sd_vect1617 <- sqrt(diag(cov_mat1617))
+
+mean_vect17 <- apply(s17, 2, mean)
+cov_mat17 <- cov(s17)
+sd_vect17 <- sqrt(diag(cov_mat17))
+
+mean_vect18 <- apply(s18, 2, mean)
+cov_mat18 <- cov(s18)
+sd_vect18 <- sqrt(diag(cov_mat18))
+
+# S&P500 summarization
+sp <- read.csv("GSPC.csv", header = T) # import file of S&P500
+sp <- data.frame(Date = sp[,1], Adj.close = sp[, 6])
+sam1 <- sapply(sp, growth)
+sp$return <- sam1[, 2]
+sp <- sp[-1, ]
+sp$Date <- as.character(sp$Date)
+sp$Year <- substr(sp$Date, 1, 4)
+sp$Year <- as.numeric(sp$Year)
+
+sp07 <- sp[sp$Year == 2007, ]
+sp0809 <- sp[sp$Year == 2008 | sp$Year == 2009, ]
+sp1617 <- sp[sp$Year == 2016 | sp$Year == 2017, ]
+sp17 <- sp[sp$Year == 2017, ]
+sp18 <- sp[sp$Year == 2018, ]
+
+a07 <- mean(sp07$return)
+a0809 <- mean(sp0809$return)
+a1617 <- mean(sp1617$return)
+a17 <- mean(sp17$return)
+a18 <- mean(sp18$return)
+
+# Mean-variance of 2007
+library(Ecdat)
+library(quadprog)
+
+Amat07 <- cbind(rep(1,11), mean_vect07) # set the constraints matrix
+muP07 <- seq(a07, 0.03, length = 100) # target portfolio means
+sdP07 = muP07
+weights07 <- matrix(0, nrow = 100, ncol = 11) # storage for weights
+for (i in 1:length(muP07)){
+  bvec07 <- c(1, muP07[i])
+  result07 <- solve.QP(Dmat = 2*cov_mat07, dvec = rep(0,11), 
+                     Amat = Amat07, bvec = bvec07, meq = 2)
+  sdP07[i] <- sqrt(result07$value)
+  weights07[i,] <- result07$solution
+}
+
+er07 <- apply(weights07*mean_vect07, 1, sum)
+(er07 - a07)*252 # annualized return
+
+# Mean-variance of 2008-2009
+
+Amat0809 <- cbind(rep(1,11), mean_vect0809) # set the constraints matrix
+muP0809 <- seq(a0809, 0.03, length = 100) # target portfolio means
+sdP0809 = muP0809
+weights0809 <- matrix(0, nrow = 100, ncol = 11) # storage for weights
+for (i in 1:length(muP0809)){
+  bvec0809 <- c(1, muP0809[i])
+  result0809 <- solve.QP(Dmat = 2*cov_mat0809, dvec = rep(0,11), 
+                     Amat = Amat0809, bvec = bvec0809, meq = 2)
+  sdP0809[i] <- sqrt(result0809$value)
+  weights0809[i,] <- result0809$solution
+}
+
+er0809 <- apply(weights0809*mean_vect0809, 1, sum)
+(er0809 - a0809)*252 # annualized return
+
+# Mean-variance of 2016-2017
+
+Amat1617 <- cbind(rep(1,11), mean_vect1617) # set the constraints matrix
+muP1617 <- seq(a1617, 0.03, length = 100) # target portfolio means
+sdP1617 = muP1617
+weights1617 <- matrix(0, nrow = 100, ncol = 11) # storage for weights
+for (i in 1:length(muP1617)){
+  bvec1617 <- c(1, muP1617[i])
+  result1617 <- solve.QP(Dmat = 2*cov_mat1617, dvec = rep(0,11), 
+                     Amat = Amat1617, bvec = bvec1617, meq = 2)
+  sdP1617[i] <- sqrt(result1617$value)
+  weights1617[i,] <- result1617$solution
+}
+
+er1617 <- apply(weights1617*mean_vect1617, 1, sum)
+(er1617 - a1617)*252 # annualized return
+
+# Mean-variance of 2017
+
+Amat17 <- cbind(rep(1,11), mean_vect1617) # set the constraints matrix
+muP17 <- seq(a17, 0.03, length = 100) # target portfolio means
+sdP17 = muP17
+weights17 <- matrix(0, nrow = 100, ncol = 11) # storage for weights
+for (i in 1:length(muP17)){
+  bvec17 <- c(1, muP17[i])
+  result17 <- solve.QP(Dmat = 2*cov_mat17, dvec = rep(0,11), 
+                     Amat = Amat17, bvec = bvec17, meq = 2)
+  sdP17[i] <- sqrt(result17$value)
+  weights17[i,] <- result17$solution
+}
+
+er17 <- apply(weights17*mean_vect17, 1, sum)
+(er17 - a17)*252 # annualized return
+(apply(weights17*mean_vect18, 1, sum) - a18)*252 # whether our portfolio beats S&P500 in 2018?
+```
+
+# Outperformance again?
+
+```{r}
+# Test 2007 to 2018
+test07 <- apply(mean_vect18*weights07, 1, sum) # apply weights of 2007 to 2018
+mean(test07 - a07) * 252 # to measure if the portfolio07 outperforms S&P500 in 2018
+rf <- 0.0264
+
+sigma.sam07 <- weights07 %*% t(s18)
+sigma07 <- apply(sigma.sam07, 1, sd)
+
+sharpe07 <- (er07[1] - rf/252)/sigma07[1]*sqrt(252)
+sharpe_sp <- (mean(sp18$return) - rf/252)/sd(sp18$return)*sqrt(252) # Sharpe ratio of S&P500 in 2018
+
+
+# Test 2008-2009 to 2018
+test0809 <- apply(mean_vect18*weights0809, 1, sum)
+mean(test0809 - a0809) * 252
+sigma.sam0809 <- weights0809 %*% t(s18)
+sigma0809 <- apply(sigma.sam0809, 1, sd)
+
+sharpe0809 <- (er0809[1] - rf/252)/sigma0809[1]*sqrt(252)
+
+# Test 2016-2017 to 2018
+test1617 <- apply(mean_vect18*weights1617, 1, sum)
+mean(test1617 - a1617) * 252
+sigma.sam1617 <- weights1617 %*% t(s18)
+sigma1617 <- apply(sigma.sam1617, 1, sd)
+
+sharpe1617 <- (er1617[1] - rf/252)*252/(sigma1617[1]*sqrt(252))
+
+# Test 2017 to 2018
+test17 <- apply(mean_vect18*weights17, 1, sum)
+mean(test17 - a17) * 252
+sigma.sam17 <- weights17 %*% t(s18)
+sigma17 <- apply(sigma.sam17, 1, sd)
+
+sharpe17 <- (er17[1] - rf/252)/sigma17[1]*sqrt(252)
+c(sharpe07, sharpe0809, sharpe1617, sharpe17)
+```
+
+```{r  fig.width = 5}
+#Heat map
+library(tidyverse)
+library(gplots)
+
+w07 <- weights07[1,]
+w0809 <- weights0809[1,]
+w1617 <- weights1617[1,]
+w17 <- weights17[1,]
+
+heatdat <- matrix(c(w07,w0809,w1617,w17),nrow=11,ncol=4)
+colnames(heatdat) <- c("'07","'08-09","'16-17","'17")
+rownames(heatdat) <- c("Communication","Consumer Discretionary","Consumer Staples","Energy","Materials","Utilities","Real estate","IT","Industrials","Healthcare","Financials")
+heatmap.2(heatdat, srtCol = 0, dendrogram="none", trace="none", cellnote=round(heatdat,2), notecol="black",margins =c(5,12))
+
+
+```
+```{r}
+
+w07 <- weights07[1,]
+w0809 <- weights0809[1,]
+w1617 <- weights1617[1,]
+w17 <- weights17[1,]
+
+heatdat <- matrix(c(w07,w0809,w1617,w17),nrow=11,ncol=4)
+colnames(heatdat) <- c("'07","'08-09","'16-17","'17")
+rownames(heatdat) <- c("Communication","Consumer Discretionary","Consumer Staples","Energy","Materials","Utilities","Real estate","IT","Industrials","Healthcare","Financials")
+heatdat <- t(heatdat)
+heatmap.2(heatdat, dendrogram="none", trace="row",tracecol="blue", cellnote=round(heatdat,2), notecol="black", margin = c(12,6), key.title=NA, xlab="ETF", ylab="Year", main="Weights heatmap",breaks=10,rowsep=1:3)
+ncol(heatdat)
+```
+
+```{r}
+w07 <- weights07[1,]
+w0809 <- weights0809[1,]
+w1617 <- weights1617[1,]
+w17 <- weights17[1,]
+ht<- data.frame("ETF"=c("Communication","Consumer Discretionary","Consumer Staples","Energy","Materials","Utilities","Real estate","IT","Industrials","Healthcare","Financials"),"'07" = w07,"'08-'09" = w0809,"'16-'17" = w1617,"'17" = w17)
+names(ht) <- c("ETF", "'07","'08-'09","'16-'17","'17")
+ht <- ht %>%
+  gather(`'07`,`'08-'09` ,`'16-'17`,`'17`, key = "Year", value = "Weights")
+ht$Year <-factor(ht$Year)
+ht %>%
+  ggplot(aes(ETF,fct_rev(Year),fill=Weights)) +
+  scale_fill_gradient(low="white", high="darkblue") +
+  geom_tile(color= "white",size=0.1) + 
+  geom_text(aes(label = round(Weights, 1)), size=5) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_discrete(breaks = unique(ht$ETF)) +
+  theme(legend.position = "right") +
+  labs(title = "Weights Heatmap",x = "ETFs", y = "Year") +
+  theme(plot.title=element_text(size = 15)) +
+  theme(axis.ticks=element_blank()) +
+  theme(axis.text=element_text(size=10)) +
+  theme(legend.text=element_text(size=10))
+
+```
+```{r}
+ht %>%
+  ggplot(aes(ETF,Year,fill=Weights)) +
+  geom_tile(color= "white",size=0.1) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+```
+

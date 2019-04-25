@@ -14,7 +14,176 @@ library(Ecdat)
 library(quadprog)
 library(plyr)
 library(tidyverse)
+```
 
+```{r}
+gsec_mtkcap_date <- read.csv("total_return.csv",header = T)
+SP500 <- read.csv("GSPC.csv",header = T)
+
+Year <- substr(as.character(gsec_mtkcap_date$Date),nchar(as.character(gsec_mtkcap_date$Date))-1,nchar(as.character(gsec_mtkcap_date$Date)))
+ret_07 <- gsec_mtkcap_date %>%
+  filter(Year =="07")
+ret_0809 <- gsec_mtkcap_date %>%
+  filter(Year =="08" |Year =="09")
+ret_1617 <- gsec_mtkcap_date %>%
+  filter(Year =="16" |Year =="17")
+ret_17 <- gsec_mtkcap_date %>%
+  filter(Year =="17")
+ret_18 <- gsec_mtkcap_date %>%
+  filter(Year =="18")
+#ret_2016_2018 <- ret_date %>%
+#  filter(substr(ret_date$Date,1,4) %in% c("2016","2017","2018"))
+#ret_2019 <- ret_date %>%
+#  filter(substr(ret_date$Date,1,4)=="2019")
+growth <- function(df){
+  a <- c(NA, tail(df, -1) / head(df, -1) - 1)
+  return(a)
+}
+SP500 <- data.frame(Date = SP500[,1], Adj.close = SP500[, 6])
+SP500$return <- sapply(SP500, growth)[,2]
+SP500 <- SP500[-1,]
+
+```
+
+```{r}
+#2007
+R = ret_07[ ,3:13] # convert to percentages
+mean_vect = apply(R, 2 ,mean)
+cov_mat = cov(R)
+sd_vect = sqrt(diag(cov_mat))
+Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
+mean_SP500_07 <- SP500 %>%
+  filter(substr(SP500$Date,3,4) =="07") %>%
+  select(return) %>%
+  apply(.,2,mean)
+muP = seq(mean_SP500_07, .03, length = 100) # target portfolio means
+# for the expect portfolio return
+sdP = muP # set up storage for std dev’s of portfolio returns
+weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
+for (i in 1:length(muP)) # find the optimal portfolios
+{
+  bvec = c(1, muP[i]) # constraint vector
+  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
+  sdP[i] = sqrt(result$value)
+  weights[i,] = result$solution
+}
+weights[1,]
+plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+mufree = .0264 / 253 # input value of risk-free interest rate
+#points(0, mufree, cex = 4, pch = "*") # show risk-free asset
+
+pred18on07 <- weights[1,]*ret_18[,c(-1,-2)]
+(mean(apply(pred18on07,1,sum))-mufree)/sd(apply(pred18on07,1,sum))*sqrt(253)
+```
+
+```{r}
+#2008-09
+R = ret_0809[ ,3:13] # convert to percentages
+mean_vect = apply(R, 2 ,mean)
+cov_mat = cov(R)
+sd_vect = sqrt(diag(cov_mat))
+Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
+mean_SP500_0809 <- SP500 %>%
+  filter(substr(SP500$Date,3,4) == "08"|substr(SP500$Date,3,4) == "09") %>%
+  select(return) %>%
+  apply(.,2,mean)
+muP = seq(mean_SP500_0809, .03, length = 100) # target portfolio means
+# for the expect portfolio return
+sdP = muP # set up storage for std dev’s of portfolio returns
+weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
+for (i in 1:length(muP)) # find the optimal portfolios
+{
+  bvec = c(1, muP[i]) # constraint vector
+  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
+  sdP[i] = sqrt(result$value)
+  weights[i,] = result$solution
+}
+weights[1,]
+plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+mufree = .0264 / 253 # input value of risk-free interest rate
+#points(0, mufree, cex = 4, pch = "*") # show risk-free asset
+
+pred18on0809 <- weights[1,]*ret_18[,c(-1,-2)]
+(mean(apply(pred18on0809,1,sum))-mufree)/sd(apply(pred18on0809,1,sum))*sqrt(253)
+```
+
+```{r}
+#2016-17
+R = ret_1617[ ,3:13] # convert to percentages
+mean_vect = apply(R, 2 ,mean)
+cov_mat = cov(R)
+sd_vect = sqrt(diag(cov_mat))
+Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
+mean_SP500_1617 <- SP500 %>%
+  filter(substr(SP500$Date,3,4) == "16"|substr(SP500$Date,3,4) == "17") %>%
+  select(return) %>%
+  apply(.,2,mean)
+muP = seq(mean_SP500_1617, .03, length = 100) # target portfolio means
+# for the expect portfolio return
+sdP = muP # set up storage for std dev’s of portfolio returns
+weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
+for (i in 1:length(muP)) # find the optimal portfolios
+{
+  bvec = c(1, muP[i]) # constraint vector
+  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
+  sdP[i] = sqrt(result$value)
+  weights[i,] = result$solution
+}
+weights[1,]
+#plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+mufree = .0264 / 253 # input value of risk-free interest rate
+#points(0, mufree, cex = 4, pch = "*") # show risk-free asset
+
+pred18on1617 <- weights[1,]*ret_18[,c(-1,-2)]
+(mean(apply(pred18on1617,1,sum))-mufree)/sd(apply(pred18on1617,1,sum))*sqrt(253)
+
+```
+
+
+```{r}
+#2017
+R = 100*ret_17[ ,3:13] # convert to percentages
+mean_vect = apply(R, 2 ,mean)
+cov_mat = cov(R)
+sd_vect = sqrt(diag(cov_mat))
+Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
+mean_SP500_17 <- SP500 %>%
+  filter(substr(SP500$Date,3,4) == "17") %>%
+  select(return) %>%
+  apply(.,2,mean)
+muP = seq(mean_SP500_17, .03, length = 100) # target portfolio means
+# for the expect portfolio return
+sdP = muP # set up storage for std dev’s of portfolio returns
+weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
+for (i in 1:length(muP)) # find the optimal portfolios
+{
+  bvec = c(1, muP[i]) # constraint vector
+  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
+  sdP[i] = sqrt(result$value)
+  weights[i,] = result$solution
+}
+weights[1,]
+#plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+mufree = .0264 / 253 # input value of risk-free interest rate
+#points(0, mufree, cex = 4, pch = "*") # show risk-free asset
+
+pred18on17 <- weights[1,]*ret_18[,c(-1,-2)]
+(mean(apply(pred18on17,1,sum))-mufree)/sd(apply(pred18on17,1,sum))*sqrt(253)
+```
+
+
+
+
+
+```{r}
+wts_1618 <- weights[1, ] 
+R_1618 <- wts_1618*ret_2019[,-1]
+(mean(apply(R_1618,1,sum))-mufree)/sd(apply(R_1618,1,sum))
+```
+
+
+
+```{r}
 stdt <- read.csv("stock(new).csv",header = T)
 stdt$gsector <- as.factor(stdt$gsector)
 Ticker<-stdt %>%
@@ -100,7 +269,7 @@ mean_vect = apply(R, 2 ,mean)
 cov_mat = cov(R)
 sd_vect = sqrt(diag(cov_mat))
 Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
-muP = seq(.000304, 0.14, length = 500) # target portfolio means
+muP = seq(.0304, 0.14, length = 500) # target portfolio means
 # for the expect portfolio return
 sdP = muP # set up storage for std dev’s of portfolio returns
 weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
@@ -115,7 +284,7 @@ weights
 #pdf("quad_prog_plot.pdf", width =6)
 plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
 # inefficient portfolios below the min var portfolio)
-mufree = 1.3 / 253 # input value of risk-free interest rate
+mufree = 2.64 / 253 # input value of risk-free interest rate
 points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 sharpe = (muP - mufree) / sdP # compute Sharpe’s ratios
 max(sharpe)
@@ -130,10 +299,8 @@ sd(apply(R_1618,1,sum))
 ```
 ```{r}
 wts_1618 <- weights[1, ] 
-
 R_1618 <- wts_1618*ret_2019[,-1]
-
-mean(apply(R_1618,1,sum))/sd(apply(R_1618,1,sum))
+(mean(apply(R_1618,1,sum))-mufree)/sd(apply(R_1618,1,sum))
 ```
 
 
@@ -164,47 +331,6 @@ points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 sharpe = (muP - mufree) / sdP # compute Sharpe’s ratios
 max(sharpe)
 #ind = (sharpe == max(sharpe)) # Find maximum Sharpe’s ratio
-```
-```{r}
-
-R = 100*ret_date[ ,2:12] # convert to percentages
-mean_vect = apply(R, 2 ,mean)
-cov_mat = cov(R)
-sd_vect = sqrt(diag(cov_mat))
-Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
-muP = seq(-.05, 0.14, length = 500) # target portfolio means
-# for the expect portfolio return
-sdP = muP # set up storage for std dev’s of portfolio returns
-weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
-for (i in 1:length(muP)) # find the optimal portfolios
-{
-  bvec = c(1, muP[i]) # constraint vector
-  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
-  sdP[i] = sqrt(result$value)
-  weights[i,] = result$solution
-}
-#pdf("quad_prog_plot.pdf", width =6)
-plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
-# inefficient portfolios below the min var portfolio)
-mufree = 1.3 / 253 # input value of risk-free interest rate
-points(0, mufree, cex = 4, pch = "*") # show risk-free asset
-sharpe = (muP - mufree) / sdP # compute Sharpe’s ratios
-ind = (sharpe == max(sharpe)) # Find maximum Sharpe’s ratio
-```
-
-
-```{r}
-weights[ind, ] # print the weights of the tangency portfolio
-lines(c(0, 2), mufree + c(0, 2) * (muP[ind] - mufree) / sdP[ind],lwd = 4, lty = 1, col = "blue") # show line of optimal
-points(sdP[ind], muP[ind], cex = 4, pch = "*") # tangency
-ind2 = (sdP == min(sdP)) # find minimum variance portfolio
-points(sdP[ind2], muP[ind2], cex = 2, pch = "+") # min var
-ind3 = (muP > muP[ind2])
-lines(sdP[ind3], muP[ind3], type = "l", xlim = c(0, 0.25),ylim = c(0, 0.3), lwd = 3, col = "red") # plot efficient frontier
-text(sd_vect[1], mean_vect[1], "GE", cex = 1.15)
-text(sd_vect[2], mean_vect[2], "IBM", cex = 1.15)
-text(sd_vect[3], mean_vect[3], "Mobil", cex = 1.15)
-#graphics.off()
 ```
 
 
