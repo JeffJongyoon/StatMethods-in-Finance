@@ -31,6 +31,7 @@ s$Year <- substr(Date, nchar(Date)-1, nchar(Date))
 
 s07 <- s[s$Year == "07", ] # Bull market 1
 s1617 <- s[s$Year == "16" | s$Year == "17", ] # Bull market 2
+s16 <- s[s$Year == "16", ] # Bull market 3
 s17 <- s[s$Year == "17", ] # Bull market 3
 s08 <- s[s$Year == "08", ] # Bear market 1
 s0809 <- s[s$Year == "08" | s$Year == "09", ] # Bear market 2
@@ -39,6 +40,7 @@ s18 <- s[s$Year == "18", ] # Prediction target
 # Getting rid of the date and the year columns
 s07 <- s07[, -1]; s07 <- s07[, -dim(s07)[2]]
 s1617 <- s1617[, -1]; s1617 <- s1617[, -dim(s1617)[2]]
+s16 <- s16[, -1]; s16 <- s16[, -dim(s16)[2]]
 s17 <- s17[, -1]; s17 <- s17[, -dim(s17)[2]]
 s08 <- s08[, -1]; s08 <- s08[, -dim(s08)[2]]
 s0809 <- s0809[, -1]; s0809 <- s0809[, -dim(s0809)[2]]
@@ -61,6 +63,10 @@ mean_vect1617 <- apply(s1617, 2, mean)
 cov_mat1617 <- cov(s1617)
 sd_vect1617 <- sqrt(diag(cov_mat1617))
 
+mean_vect16 <- apply(s16, 2, mean)
+cov_mat16 <- cov(s16)
+sd_vect16 <- sqrt(diag(cov_mat16))
+
 mean_vect17 <- apply(s17, 2, mean)
 cov_mat17 <- cov(s17)
 sd_vect17 <- sqrt(diag(cov_mat17))
@@ -82,12 +88,14 @@ sp$Year <- as.numeric(sp$Year)
 sp07 <- sp[sp$Year == 2007, ]
 sp0809 <- sp[sp$Year == 2008 | sp$Year == 2009, ]
 sp1617 <- sp[sp$Year == 2016 | sp$Year == 2017, ]
+sp16 <- sp[sp$Year == 2016, ]
 sp17 <- sp[sp$Year == 2017, ]
 sp18 <- sp[sp$Year == 2018, ]
 
 a07 <- mean(sp07$return)
 a0809 <- mean(sp0809$return)
 a1617 <- mean(sp1617$return)
+a16 <- mean(sp16$return)
 a17 <- mean(sp17$return)
 a18 <- mean(sp18$return)
 
@@ -144,6 +152,23 @@ for (i in 1:length(muP1617)){
 er1617 <- apply(weights1617*mean_vect1617, 1, sum)
 (er1617 - a1617)*252 # annualized return
 
+# Mean-variance of 2016
+
+Amat16 <- cbind(rep(1,11), mean_vect16) # set the constraints matrix
+muP16 <- seq(a16, 0.03, length = 100) # target portfolio means
+sdP16 = muP16
+weights16 <- matrix(0, nrow = 100, ncol = 11) # storage for weights
+for (i in 1:length(muP16)){
+  bvec16 <- c(1, muP16[i])
+  result16 <- solve.QP(Dmat = 2*cov_mat16, dvec = rep(0,11), 
+                     Amat = Amat16, bvec = bvec16, meq = 2)
+  sdP16[i] <- sqrt(result16$value)
+  weights16[i,] <- result16$solution
+}
+
+er16 <- apply(weights16*mean_vect16, 1, sum)
+(er16 - a16)*252 # annualized return
+
 # Mean-variance of 2017
 
 Amat17 <- cbind(rep(1,11), mean_vect1617) # set the constraints matrix
@@ -174,7 +199,7 @@ rf <- 0.0264
 sigma.sam07 <- weights07 %*% t(s18)
 sigma07 <- apply(sigma.sam07, 1, sd)
 
-sharpe07 <- (er07[1] - rf/252)/sigma07[1]*sqrt(252)
+sharpe07 <- (test07[1] - rf/252)/sigma07[1]*sqrt(252)
 sharpe_sp <- (mean(sp18$return) - rf/252)/sd(sp18$return)*sqrt(252) # Sharpe ratio of S&P500 in 2018
 
 
@@ -184,7 +209,7 @@ mean(test0809 - a0809) * 252
 sigma.sam0809 <- weights0809 %*% t(s18)
 sigma0809 <- apply(sigma.sam0809, 1, sd)
 
-sharpe0809 <- (er0809[1] - rf/252)/sigma0809[1]*sqrt(252)
+sharpe0809 <- (test0809[1] - rf/252)/sigma0809[1]*sqrt(252)
 
 # Test 2016-2017 to 2018
 test1617 <- apply(mean_vect18*weights1617, 1, sum)
@@ -192,7 +217,7 @@ mean(test1617 - a1617) * 252
 sigma.sam1617 <- weights1617 %*% t(s18)
 sigma1617 <- apply(sigma.sam1617, 1, sd)
 
-sharpe1617 <- (er1617[1] - rf/252)*252/(sigma1617[1]*sqrt(252))
+sharpe1617 <- (test1617[1] - rf/252)*252/(sigma1617[1]*sqrt(252))
 
 # Test 2017 to 2018
 test17 <- apply(mean_vect18*weights17, 1, sum)
@@ -200,7 +225,7 @@ mean(test17 - a17) * 252
 sigma.sam17 <- weights17 %*% t(s18)
 sigma17 <- apply(sigma.sam17, 1, sd)
 
-sharpe17 <- (er17[1] - rf/252)/sigma17[1]*sqrt(252)
+sharpe17 <- (test17[1] - rf/252)/sigma17[1]*sqrt(252)
 c(sharpe07, sharpe0809, sharpe1617, sharpe17)
 ```
 
@@ -227,13 +252,11 @@ w07 <- weights07[1,]
 w0809 <- weights0809[1,]
 w1617 <- weights1617[1,]
 w17 <- weights17[1,]
-
 heatdat <- matrix(c(w07,w0809,w1617,w17),nrow=11,ncol=4)
 colnames(heatdat) <- c("'07","'08-09","'16-17","'17")
 rownames(heatdat) <- c("Communication","Consumer Discretionary","Consumer Staples","Energy","Materials","Utilities","Real estate","IT","Industrials","Healthcare","Financials")
 heatdat <- t(heatdat)
 heatmap.2(heatdat, dendrogram="none", trace="row",tracecol="blue", cellnote=round(heatdat,2), notecol="black", margin = c(12,6), key.title=NA, xlab="ETF", ylab="Year", main="Weights heatmap",breaks=10,rowsep=1:3)
-ncol(heatdat)
 ```
 
 ```{r}
@@ -262,10 +285,123 @@ ht %>%
 
 ```
 ```{r}
-ht %>%
-  ggplot(aes(ETF,Year,fill=Weights)) +
-  geom_tile(color= "white",size=0.1) + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+library(tidyverse)
+a18<- sp18 %>%
+  mutate(index = Adj.close/Adj.close[1]*100) %>%
+  select(index)
+a17<- sp17 %>%
+  mutate(index = Adj.close/Adj.close[1]*100) %>%
+  select(index)
+plot(as.matrix(a18),type="l")
+plot(as.matrix(a17),type="l")
 
 ```
 
+```{r}
+#07
+return18on07 <- data.frame(return=apply(weights07[1, ]*s18, 1, sum))
+return18on07 <- return18on07 %>%
+  mutate(compound = 1+return)
+return18on07 <- return18on07[-1,]
+price <- 100
+for(i in 1:dim(return18on07)[1]){
+  price[i+1] <- price[i] * return18on07$compound[i]
+}
+return18on07$price <- price[-length(price)]
+
+#0809
+return18on0809 <- data.frame(return=apply(weights0809[1, ]*s18, 1, sum))
+return18on0809 <- return18on0809 %>%
+  mutate(compound = 1+return)
+return18on0809 <- return18on0809[-1,]
+price <- 100
+for(i in 1:dim(return18on0809)[1]){
+  price[i+1] <- price[i] * return18on0809$compound[i]
+}
+return18on0809$price <- price[-length(price)]
+
+#1617
+return18on1617 <- data.frame(return=apply(weights1617[1, ]*s18, 1, sum))
+return18on1617 <- return18on1617 %>%
+  mutate(compound = 1+return)
+return18on1617 <- return18on1617[-1,]
+price <- 100
+for(i in 1:dim(return18on1617)[1]){
+  price[i+1] <- price[i] * return18on1617$compound[i]
+}
+return18on1617$price <- price[-length(price)]
+
+#17
+return18on17 <- data.frame(return=apply(weights17[1, ]*s18, 1, sum))
+return18on17 <- return18on17 %>%
+  mutate(compound = 1+return)
+return18on17 <- return18on17[-1,]
+price <- 100
+for(i in 1:dim(return18on17)[1]){
+  price[i+1] <- price[i] * return18on17$compound[i]
+}
+return18on17$price <- price[-length(price)]
+
+
+plot(as.matrix(a18),type="l",ylim = c(50,110),col="red", xlab = "Time",ylab = "Index")
+lines(return18on07$price,col="blue")
+lines(return18on0809$price,col="gray")
+lines(return18on1617$price,col="black")
+lines(return18on17$price,col="purple")
+legend(0,80,legend = c("SP500","'07","'08-'09","'16-'17","'17"),col=c("red","blue","gray","black","purple"),lty=1,cex=1)
+```
+
+
+```{r}
+#07
+return17on07 <- data.frame(return=apply(weights07[1, ]*s17, 1, sum))
+return17on07 <- return17on07 %>%
+  mutate(compound = 1+return)
+return17on07 <- return17on07[-1,]
+price <- 100
+for(i in 1:dim(return17on07)[1]){
+  price[i+1] <- price[i] * return17on07$compound[i]
+}
+return17on07$price <- price[-length(price)]
+
+#0809
+return17on0809 <- data.frame(return=apply(weights0809[1, ]*s17, 1, sum))
+return17on0809 <- return17on0809 %>%
+  mutate(compound = 1+return)
+return17on0809 <- return17on0809[-1,]
+price <- 100
+for(i in 1:dim(return17on0809)[1]){
+  price[i+1] <- price[i] * return17on0809$compound[i]
+}
+return17on0809$price <- price[-length(price)]
+
+#1617
+return17on1617 <- data.frame(return=apply(weights1617[1, ]*s17, 1, sum))
+return17on1617 <- return17on1617 %>%
+  mutate(compound = 1+return)
+return17on1617 <- return17on1617[-1,]
+price <- 100
+for(i in 1:dim(return17on1617)[1]){
+  price[i+1] <- price[i] * return17on1617$compound[i]
+}
+return17on1617$price <- price[-length(price)]
+
+#17
+return17on17 <- data.frame(return=apply(weights17[1, ]*s17, 1, sum))
+return17on17 <- return17on17 %>%
+  mutate(compound = 1+return)
+return17on17 <- return17on17[-1,]
+price <- 100
+for(i in 1:dim(return17on17)[1]){
+  price[i+1] <- price[i] * return17on17$compound[i]
+}
+return17on17$price <- price[-length(price)]
+
+
+plot(as.matrix(a17),type="l",ylim = c(90,150),col="red", xlab = "Time",ylab = "Index")
+lines(return17on07$price,col="blue")
+lines(return17on0809$price,col="gray")
+lines(return17on1617$price,col="black")
+lines(return17on17$price,col="purple")
+legend(20,150,legend = c("SP500","'07","'08-'09","'16-'17","'17"),col=c("red","blue","gray","black","purple"),lty=1,cex=1)
+```
