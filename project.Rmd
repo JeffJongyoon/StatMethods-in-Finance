@@ -18,13 +18,15 @@ library(tidyverse)
 
 ```{r}
 gsec_mtkcap_date <- read.csv("total_return.csv",header = T)
-SP500 <- read.csv("GSPC.csv",header = T)
+SP500 <- read.csv("GSPC.csv",header = T,as.is = T)
 
 Year <- substr(as.character(gsec_mtkcap_date$Date),nchar(as.character(gsec_mtkcap_date$Date))-1,nchar(as.character(gsec_mtkcap_date$Date)))
 ret_07 <- gsec_mtkcap_date %>%
   filter(Year =="07")
 ret_0809 <- gsec_mtkcap_date %>%
   filter(Year =="08" |Year =="09")
+ret_13 <- gsec_mtkcap_date %>%
+  filter(Year =="13")
 ret_1617 <- gsec_mtkcap_date %>%
   filter(Year =="16" |Year =="17")
 ret_17 <- gsec_mtkcap_date %>%
@@ -67,12 +69,12 @@ for (i in 1:length(muP)) # find the optimal portfolios
   sdP[i] = sqrt(result$value)
   weights[i,] = result$solution
 }
-weights[1,]
+weights07 <- weights[1,]
 plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
 mufree = .0264 / 253 # input value of risk-free interest rate
 #points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 
-pred18on07 <- weights[1,]*ret_18[,c(-1,-2)]
+pred18on07 <- weights07*ret_18[,c(-1,-2)]
 (mean(apply(pred18on07,1,sum))-mufree)/sd(apply(pred18on07,1,sum))*sqrt(253)
 ```
 
@@ -98,12 +100,12 @@ for (i in 1:length(muP)) # find the optimal portfolios
   sdP[i] = sqrt(result$value)
   weights[i,] = result$solution
 }
-weights[1,]
+weights0809 <- weights[1,]
 plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
 mufree = .0264 / 253 # input value of risk-free interest rate
 #points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 
-pred18on0809 <- weights[1,]*ret_18[,c(-1,-2)]
+pred18on0809 <- weights0809*ret_18[,c(-1,-2)]
 (mean(apply(pred18on0809,1,sum))-mufree)/sd(apply(pred18on0809,1,sum))*sqrt(253)
 ```
 
@@ -129,12 +131,12 @@ for (i in 1:length(muP)) # find the optimal portfolios
   sdP[i] = sqrt(result$value)
   weights[i,] = result$solution
 }
-weights[1,]
-#plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+weights1617 <- weights[1,]
+plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
 mufree = .0264 / 253 # input value of risk-free interest rate
 #points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 
-pred18on1617 <- weights[1,]*ret_18[,c(-1,-2)]
+pred18on1617 <- weights1617*ret_18[,c(-1,-2)]
 (mean(apply(pred18on1617,1,sum))-mufree)/sd(apply(pred18on1617,1,sum))*sqrt(253)
 
 ```
@@ -142,7 +144,7 @@ pred18on1617 <- weights[1,]*ret_18[,c(-1,-2)]
 
 ```{r}
 #2017
-R = 100*ret_17[ ,3:13] # convert to percentages
+R = ret_17[ ,3:13] # convert to percentages
 mean_vect = apply(R, 2 ,mean)
 cov_mat = cov(R)
 sd_vect = sqrt(diag(cov_mat))
@@ -162,175 +164,198 @@ for (i in 1:length(muP)) # find the optimal portfolios
   sdP[i] = sqrt(result$value)
   weights[i,] = result$solution
 }
-weights[1,]
-#plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
+weights17 <- weights[1,]
+plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
 mufree = .0264 / 253 # input value of risk-free interest rate
 #points(0, mufree, cex = 4, pch = "*") # show risk-free asset
 
-pred18on17 <- weights[1,]*ret_18[,c(-1,-2)]
+pred18on17 <- weights17*ret_18[,c(-1,-2)]
 (mean(apply(pred18on17,1,sum))-mufree)/sd(apply(pred18on17,1,sum))*sqrt(253)
+(mean(sp18$return)-mufree/253)/sd(sp18$return)*sqrt(253)
+mean(sp18$return)*253
+sd(sp18$return)*sqrt(253)
+
+mean(apply(pred18on17, 1, sum))*253
+mean(apply(pred18on1617, 1, sum))*253
+mean(apply(pred18on07, 1, sum))*253
+mean(apply(pred18on0809, 1, sum))*253
+sd(apply(pred18on17, 1, sum))*sqrt(253)
+sd(apply(pred18on1617, 1, sum))*sqrt(253)
+sd(apply(pred18on07, 1, sum))*sqrt(253)
+sd(apply(pred18on0809, 1, sum))*sqrt(253)
 ```
 
 
 
 
-
 ```{r}
-wts_1618 <- weights[1, ] 
-R_1618 <- wts_1618*ret_2019[,-1]
-(mean(apply(R_1618,1,sum))-mufree)/sd(apply(R_1618,1,sum))
+# S&P500 summarization
+sp <- read.csv("GSPC.csv", header = T) # import file of S&P500
+sp <- data.frame(Date = sp[,1], Adj.close = sp[, 6])
+sam1 <- sapply(sp, growth)
+sp$return <- sam1[, 2]
+sp <- sp[-1, ]
+sp$Date <- as.character(sp$Date)
+sp$Year <- substr(sp$Date, 1, 4)
+sp$Year <- as.numeric(sp$Year)
+
+sp07 <- sp[sp$Year == 2007, ]
+sp0809 <- sp[sp$Year == 2008 | sp$Year == 2009, ]
+sp1617 <- sp[sp$Year == 2016 | sp$Year == 2017, ]
+sp16 <- sp[sp$Year == 2016, ]
+sp17 <- sp[sp$Year == 2017, ]
+sp18 <- sp[sp$Year == 2018, ]
+
+a07 <- mean(sp07$return)
+a0809 <- mean(sp0809$return)
+a1617 <- mean(sp1617$return)
+a16 <- mean(sp16$return)
+a17 <- mean(sp17$return)
+a18 <- mean(sp18$return)
+
 ```
 
 
+```{r}
+w07 <- weights07
+w0809 <- weights0809
+w1617 <- weights1617
+w17 <- weights17
+ht<- data.frame("ETF"=c("Communication","Consumer Discretionary","Consumer Staples","Energy","Materials","Utilities","Real estate","IT","Industrials","Healthcare","Financials"),"'07" = w07,"'08-'09" = w0809,"'16-'17" = w1617,"'17" = w17)
+names(ht) <- c("ETF", "'07","'08-'09","'16-'17","'17")
+ht <- ht %>%
+  gather(`'07`,`'08-'09` ,`'16-'17`,`'17`, key = "Year", value = "Weights")
+ht$Year <-factor(ht$Year)
+ht %>%
+  ggplot(aes(ETF,fct_rev(Year),fill=Weights)) +
+  scale_fill_gradient(low="white", high="darkblue") +
+  geom_tile(color= "white",size=0.1) + 
+  geom_text(aes(label = round(Weights, 1)), size=5) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_discrete(breaks = unique(ht$ETF)) +
+  theme(legend.position = "right") +
+  labs(title = "Weights Heatmap",x = "ETFs", y = "Year") +
+  theme(plot.title=element_text(size = 15)) +
+  theme(axis.ticks=element_blank()) +
+  theme(axis.text=element_text(size=10)) +
+  theme(legend.text=element_text(size=10))
+
+```
+
 
 ```{r}
-stdt <- read.csv("stock(new).csv",header = T)
-stdt$gsector <- as.factor(stdt$gsector)
-Ticker<-stdt %>%
-  group_by(tic) %>%
-  summarise(sum=n()) %>%
-  filter(sum==816) %>%
-  select(tic)
-a<-stdt %>%
-  group_by(gsector,tic) %>%
-  summarise(sum=n()) %>%
-  filter(sum==816) %>%
-  group_by(gsector) %>%
-  summarise(count=n()) %>%
-  select(count) #%>%
-  #summarise(sum(.))
-
-stocks <- stdt %>%
-  filter(tic %in% as.character(unlist(Ticker)))
-
-Tic_del <- stocks %>%
-  filter(is.na(cshoc)) %>%
-  group_by(tic) %>%
-  summarise(n()) %>%
-  select(tic)
-
-`%notin%` <- Negate(`%in%`)
-b<-stocks %>%
-  filter(tic %notin% as.character(unlist(Tic_del))) %>%
-  group_by(gsector,tic) %>%
-  summarise(n()) %>%
-  group_by(gsector) %>%
-  summarise(n=n()) %>%
-  select(n)
-
-a-b
-stocks <- stocks %>%
-  filter(tic %notin% as.character(unlist(Tic_del)))
-stocks <- stocks %>%
-  mutate(Mktval = cshoc*prccd)
-
-gsec_mtkcap <- stocks %>%
-  group_by(gsector,datadate) %>%
-  summarise(Mkt.Cap=sum(Mktval))
-
-#For each sector => parallel programming
-parallel.sec <- function(sector.df) {
-  a <- sector.df %>%
-    mutate(Mkt.Cap.Lag1 = lag(Mkt.Cap)) %>%
-    mutate(Daily.return = (Mkt.Cap-Mkt.Cap.Lag1)/Mkt.Cap.Lag1*100) %>% #in percents
-    select(-Mkt.Cap.Lag1)
-  
-  return(summary(a))
+#07
+return18on07 <- data.frame(return=apply(weights07*ret_18[,-c(1,2)], 1, sum))
+return18on07 <- return18on07 %>%
+  mutate(compound = 1+return)
+return18on07 <- return18on07[-1,]
+price <- 100
+for(i in 1:dim(return18on07)[1]){
+  price[i+1] <- price[i] * return18on07$compound[i]
 }
-#dlply(gsec_mtkcap, .(gsector), parallel.sec)
-str(gsec_mtkcap)
+return18on07$price <- price[-length(price)]
 
-#split(stocks,stocks$GIC.Sectors)
-
-gsec_mtkcap_date<-spread(gsec_mtkcap,gsector,Mkt.Cap)
-names(gsec_mtkcap_date) <- c("Date","Sec_10","Sec_15","Sec_20","Sec_25","Sec_30","Sec_35","Sec_40","Sec_45","Sec_50","Sec_55","Sec_60")
-#write.csv(gsec_mtkcap_date,"gsec_mtkcap_date.csv")
-```
-
-```{r}
-gsec_mtkcap_date %>%
-  mutate(sec10_lag1 = lag(Sec_10), sec15_lag1 = lag(Sec_15), sec20_lag1 = lag(Sec_20), sec25_lag1 = lag(Sec_25), sec30_lag1 = lag(Sec_30), sec35_lag1 = lag(Sec_35), sec40_lag1 = lag(Sec_40), sec45_lag1 = lag(Sec_45), sec50_lag1 = lag(Sec_50), sec55_lag1 = lag(Sec_55), sec60_lag1 = lag(Sec_60)) %>%
-  select(c(13:23))
-ret_date<-tail(gsec_mtkcap_date,-1)/head(gsec_mtkcap_date,-1)-1
-ret_date$Date<-gsec_mtkcap_date$Date[-1]
-
-ret_2018 <- ret_date %>%
-  filter(substr(ret_date$Date,1,4)=="2018")
-ret_2016_2018 <- ret_date %>%
-  filter(substr(ret_date$Date,1,4) %in% c("2016","2017","2018"))
-ret_2019 <- ret_date %>%
-  filter(substr(ret_date$Date,1,4)=="2019")
-```
-
-```{r}
-#2016-2018
-R = 100*ret_2016_2018[ ,2:12] # convert to percentages
-mean_vect = apply(R, 2 ,mean)
-cov_mat = cov(R)
-sd_vect = sqrt(diag(cov_mat))
-Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
-muP = seq(.0304, 0.14, length = 500) # target portfolio means
-# for the expect portfolio return
-sdP = muP # set up storage for std dev’s of portfolio returns
-weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
-for (i in 1:length(muP)) # find the optimal portfolios
-{
-  bvec = c(1, muP[i]) # constraint vector
-  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
-  sdP[i] = sqrt(result$value)
-  weights[i,] = result$solution
+#0809
+return18on0809 <- data.frame(return=apply(weights0809*ret_18[,-c(1,2)], 1, sum))
+return18on0809 <- return18on0809 %>%
+  mutate(compound = 1+return)
+return18on0809 <- return18on0809[-1,]
+price <- 100
+for(i in 1:dim(return18on0809)[1]){
+  price[i+1] <- price[i] * return18on0809$compound[i]
 }
-weights
-#pdf("quad_prog_plot.pdf", width =6)
-plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
-# inefficient portfolios below the min var portfolio)
-mufree = 2.64 / 253 # input value of risk-free interest rate
-points(0, mufree, cex = 4, pch = "*") # show risk-free asset
-sharpe = (muP - mufree) / sdP # compute Sharpe’s ratios
-max(sharpe)
-ind = (sharpe == max(sharpe)) # Find maximum Sharpe’s ratio
-wts_1618 <- weights[ind, ] # print the weights of the tangency portfolio
+return18on0809$price <- price[-length(price)]
 
-R_1618 <- wts_1618*ret_2019[,-1]
-
-apply(R_1618,1,sum)
-sd(apply(R_1618,1,sum))
-
-```
-```{r}
-wts_1618 <- weights[1, ] 
-R_1618 <- wts_1618*ret_2019[,-1]
-(mean(apply(R_1618,1,sum))-mufree)/sd(apply(R_1618,1,sum))
-```
-
-
-
-```{r}
-#2018
-R = 100*ret_2018[ ,2:12] # convert to percentages
-mean_vect = apply(R, 2 ,mean)
-cov_mat = cov(R)
-sd_vect = sqrt(diag(cov_mat))
-Amat = cbind(rep(1, 11), mean_vect) # set the constraints matrix
-muP = seq(-.05, 0.14, length = 500) # target portfolio means
-# for the expect portfolio return
-sdP = muP # set up storage for std dev’s of portfolio returns
-weights = matrix(0, nrow = 500, ncol = 11) # storage for weights
-for (i in 1:length(muP)) # find the optimal portfolios
-{
-  bvec = c(1, muP[i]) # constraint vector
-  result =solve.QP(Dmat = 2 * cov_mat, dvec = rep(0, 11), Amat = Amat, bvec = bvec, meq = 2)
-  sdP[i] = sqrt(result$value)
-  weights[i,] = result$solution
+#1617
+return18on1617 <- data.frame(return=apply(weights1617*ret_18[,-c(1,2)], 1, sum))
+return18on1617 <- return18on1617 %>%
+  mutate(compound = 1+return)
+return18on1617 <- return18on1617[-1,]
+price <- 100
+for(i in 1:dim(return18on1617)[1]){
+  price[i+1] <- price[i] * return18on1617$compound[i]
 }
-#pdf("quad_prog_plot.pdf", width =6)
-plot(sdP, muP, type = "l", xlim = c(0,1.35),ylim = c(-.1, 0.15), lty = 3)
-# inefficient portfolios below the min var portfolio)
-mufree = 1.3 / 253 # input value of risk-free interest rate
-points(0, mufree, cex = 4, pch = "*") # show risk-free asset
-sharpe = (muP - mufree) / sdP # compute Sharpe’s ratios
-max(sharpe)
-#ind = (sharpe == max(sharpe)) # Find maximum Sharpe’s ratio
+return18on1617$price <- price[-length(price)]
+
+#17
+return18on17 <- data.frame(return=apply(weights17*ret_18[,-c(1,2)], 1, sum))
+return18on17 <- return18on17 %>%
+  mutate(compound = 1+return)
+return18on17 <- return18on17[-1,]
+price <- 100
+for(i in 1:dim(return18on17)[1]){
+  price[i+1] <- price[i] * return18on17$compound[i]
+}
+return18on17$price <- price[-length(price)]
+
+library(tidyverse)
+a18<- sp18 %>%
+  mutate(index = Adj.close/Adj.close[1]*100) %>%
+  select(index)
+a17<- sp17 %>%
+  mutate(index = Adj.close/Adj.close[1]*100) %>%
+  select(index)
+plot(as.matrix(a18),type="l")
+plot(as.matrix(a17),type="l")
+
+plot(as.matrix(a18),type="l",col="red",ylim=c(50,110), xlab = "Time",ylab = "Index")
+lines(return18on07$price,col="blue")
+lines(return18on0809$price,col="gray")
+lines(return18on1617$price,col="black")
+lines(return18on17$price,col="purple")
+legend(0,80,legend = c("SP500","'07","'08-'09","'16-'17","'17"),col=c("red","blue","gray","black","purple"),lty=1,cex=1)
 ```
 
+```{r}
+#07
+return17on07 <- data.frame(return=apply(weights07*ret_17[,-c(1,2)], 1, sum))
+return17on07 <- return17on07 %>%
+  mutate(compound = 1+return)
+return17on07 <- return17on07[-1,]
+price <- 100
+for(i in 1:dim(return17on07)[1]){
+  price[i+1] <- price[i] * return17on07$compound[i]
+}
+return17on07$price <- price[-length(price)]
 
+#0809
+return17on0809 <- data.frame(return=apply(weights0809*ret_17[,-c(1,2)], 1, sum))
+return17on0809 <- return17on0809 %>%
+  mutate(compound = 1+return)
+return17on0809 <- return17on0809[-1,]
+price <- 100
+for(i in 1:dim(return17on0809)[1]){
+  price[i+1] <- price[i] * return17on0809$compound[i]
+}
+return17on0809$price <- price[-length(price)]
+
+#1617
+return17on1617 <- data.frame(return=apply(weights1617*ret_17[,-c(1,2)], 1, sum))
+return17on1617 <- return17on1617 %>%
+  mutate(compound = 1+return)
+return17on1617 <- return17on1617[-1,]
+price <- 100
+for(i in 1:dim(return17on1617)[1]){
+  price[i+1] <- price[i] * return17on1617$compound[i]
+}
+return17on1617$price <- price[-length(price)]
+
+#17
+return17on17 <- data.frame(return=apply(weights17*ret_17[,-c(1,2)], 1, sum))
+return17on17 <- return17on17 %>%
+  mutate(compound = 1+return)
+return17on17 <- return17on17[-1,]
+price <- 100
+for(i in 1:dim(return17on17)[1]){
+  price[i+1] <- price[i] * return17on17$compound[i]
+}
+return17on17$price <- price[-length(price)]
+
+
+plot(as.matrix(a17),type="l",ylim = c(90,150),col="red", xlab = "Time",ylab = "Index")
+lines(return17on07$price,col="blue")
+lines(return17on0809$price,col="gray")
+lines(return17on1617$price,col="black")
+lines(return17on17$price,col="purple")
+legend(20,150,legend = c("SP500","'07","'08-'09","'16-'17","'17"),col=c("red","blue","gray","black","purple"),lty=1,cex=1)
+```
