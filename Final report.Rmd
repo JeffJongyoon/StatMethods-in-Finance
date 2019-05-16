@@ -1,8 +1,13 @@
 ---
-title: "Final Project"
-author: "Jongyoon Sohn"
+title: "MATH5010 Final Project"
+author: "Jongyoon Sohn, Daniel Lee, Kitae Keum, Dongoh Shin"
 date: "5/9/2019"
-output: pdf_document
+output:
+  pdf_document:
+    fig_width: 7
+    fig_height: 6
+fontsize: 12pt
+geometry: margin=1in
 ---
 
 ```{r setup, include=FALSE}
@@ -319,6 +324,10 @@ lines(return18on17$price,col="purple")
 legend(0,80,legend = c("SP500","'07","'08-'09","'16-'17","'17"),col=c("red","blue","gray","black","purple"),lty=1,cex=1)
 ```
 
+
+```{r, echo=FALSE, out.width = '100%', fig.align="center"}
+knitr::include_graphics("Picture2.png")
+```
 
 ```{r, echo=FALSE, message=FALSE, fig.cap="Weights Heatmap", out.width='80%', fig.align="center"}
 ##Heatmap
