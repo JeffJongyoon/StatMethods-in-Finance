@@ -1,7 +1,7 @@
 ---
 title: "MATH5010 Final Project"
-author: "Jongyoon Sohn, Daniel Lee, Kitae Keum, Dongoh Shin"
-date: "5/9/2019"
+author: "Jongyoon Sohn, Daniel Lee, Kitae Kum, Dongoh Shin"
+date: "5/17/2019"
 output:
   pdf_document:
     fig_width: 7
@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r, echo=FALSE, message=FALSE}
+#install.package() should be called unless libraries are installed
 library(Ecdat)
 library(quadprog)
 library(plyr)
@@ -369,7 +370,6 @@ In detail, the S&P 500 returns in 2018 in black is plotted to compare our predic
 #Time series prediction
 sp1718<-rbind(sp17,sp18)
 data<-data.frame(Data=as.character(sp1718$Date),Return=sp1718$return)
-adf.test(data[,-1])
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Prediction", out.width='80%', fig.align="center"}
